@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Pressable, Button } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Pressable, Button,Alert } from 'react-native';
 import styles from '../style/LoginPageST';
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../firebase";
@@ -37,26 +37,28 @@ const SignPage = ({ navigation }) => {
   const onHandleSignup = async () => {
     try {
       await handleCheckDuplicate();
-
-      if (isNameValid){
-        await createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-                const user = userCredential.user;
-                const userRef = doc(db, "users", user.uid);
-                setDoc(userRef, {
-                    displayName: name,
-                    email: email,
-                    uid: user.uid,
-                    createdAt: new Date().toUTCString(),
-                });
-            })
-            .then(() => alert("회원가입이 완료되었습니다."));
+  
+      if (isNameValid) {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        const userRef = doc(db, "users", user.uid);
+        await setDoc(userRef, {
+          displayName: name,
+          email: email,
+          uid: user.uid,
+          preference: preference,
+          createdAt: new Date().toUTCString(),
+        });
+        Alert.alert("회원가입이 완료되었습니다.");
+        // 회원가입이 완료되면 LoginPage로 이동
+        navigation.navigate('LoginPage', { preference });
       }
-      
     } catch (error) {
-        Alert.alert("이미 가입한 계정입니다.");
+      Alert.alert("이미 가입한 계정입니다.");
+      navigation.navigate('LoginPage', { preference });
     }
-};
+  };
+  
 
   const handleGenderSelection = (selectedGender) => {
     setGender(selectedGender);
@@ -67,12 +69,7 @@ const SignPage = ({ navigation }) => {
     setModalVisible(false); // 선택 후 모달을 닫습니다.
   };
 
-  {/*const handleSignUp = () => {
-    // 중복 확인 후 유효한 아이디인 경우에만 회원가입을 처리합니다.
-    // 아이디 중복 여부 등의 유효성 검사를 수행하고, 회원가입 요청을 보낼 수 있습니다.
-    console.log('회원가입을 처리합니다.');
-  };
-*/}
+  
 
   return (
     <View style={styles.container} behavior="padding">
@@ -88,27 +85,7 @@ const SignPage = ({ navigation }) => {
         value={email}
         onChangeText={(text) => setEmail(text)}
       />
-
-      {/*<Text style={styles.label}>이메일:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="숫자, 영어를 포함한 8~12자리"
-          onChangeText={(text) => setName(text)}
-          value={name}
-          autoCapitalize="none"
-          autoCorrect={false}
-          textContentType="name"
-        /> 
-        
-       //중복확인 버튼 
-        <TouchableOpacity
-          style={styles.checkDuplicateButton}
-          onPress={handleCheckDuplicate}
-        >
-          <Text style={styles.checkDuplicateButtonText}>중복확인</Text>
-        </TouchableOpacity>
-       */}
-      </View>
+   </View>
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>비밀번호 :</Text>
@@ -188,15 +165,18 @@ const SignPage = ({ navigation }) => {
       </Modal>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.signupButton}
-          onPress={onHandleSignup} > 
-          <Text style={styles.signupButtonText}>가입하기</Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+  style={styles.signupButton}
+  onPress={() => {
+    onHandleSignup(); // 회원가입 처리
+  }} 
+> 
+  <Text style={styles.signupButtonText}>가입하기</Text>
+</TouchableOpacity>
+
       </View>
     </View>
   );
 };
 
 export default SignPage;
-
